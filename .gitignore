@@ -1,0 +1,6 @@
+slurm*
+exec*
+*Dict*
+outputs/
+*.root
+pythiaChargedDijet

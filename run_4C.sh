@@ -1,0 +1,10 @@
+./ejobs pythia_config_4C.cmnd cardAlice_pp.input 11 21
+./ejobs pythia_config_4C.cmnd cardAlice_pp.input 21 36
+./ejobs pythia_config_4C.cmnd cardAlice_pp.input 36 57
+./ejobs pythia_config_4C.cmnd cardAlice_pp.input 57 84
+./ejobs pythia_config_4C.cmnd cardAlice_pp.input 84 117
+./ejobs pythia_config_4C.cmnd cardAlice_pp.input 117 152
+./ejobs pythia_config_4C.cmnd cardAlice_pp.input 152 191
+./ejobs pythia_config_4C.cmnd cardAlice_pp.input 191 234
+./ejobs pythia_config_4C.cmnd cardAlice_pp.input 234 300
+./ejobs pythia_config_4C.cmnd cardAlice_pp.input 300 -1

@@ -1,0 +1,21 @@
+Main:numberOfEvents = 100000      ! number of events to generate
+
+HardQCD:all = on
+PromptPhoton:all = on
+
+Next:numberShowEvent = 0
+Init:showAllSettings = off
+Tune:pp = 19
+PDF:LHAPDFset = cteq6l.LHpdf
+PDF:NuclearEffects = on
+PDF:NuclearPDF=EPS09LO
+
+PartonLevel:ISR = on
+PartonLevel:MPI = on
+PartonLevel:FSR = on
+
+MultipartonInteractions:pTmin = 2.0
+MultipartonInteractions:alphaSvalue = 0.123
+TimeShower:renormMultFac = 0.1
+TimeShower:alphaSvalue = 0.148
+SpaceShower:alphaSvalue = 0.123
