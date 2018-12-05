@@ -136,9 +136,9 @@ int main(int argc, char **argv) {
 
   // Extract settings to be used in the main program.
   int    nEvent  = pythia.mode("Main:numberOfEvents");
-  bool   showCS  = pythia.flag("Main:showChangedSettings");
-  //bool   showCPD = pythia.flag("Main:showChangedParticleData");
-  double energy  = pythia.mode("Beams:eCM");
+  bool   showCS  = pythia.flag("Init:showChangedSettings");
+  bool   showCPD = pythia.flag("Init:showChangedParticleData");
+  double energy  = pythia.parm("Beams:eCM");
 
   //pythia.readString(Form("PhaseSpace:pTHatMin ==%f",3));
   //pythia.readString(Form("PhaseSpace:pTHatMax ==%f",-1));
@@ -151,7 +151,7 @@ int main(int argc, char **argv) {
   pythia.init();
 
   // List changed data. 
-  if (showCS)  pythia.settings.listChanged();
+  //if (showCS)  pythia.settings.listChanged();
   //if (showCPD) pdt.listChanged();
 
   //-------------------------------------------------------

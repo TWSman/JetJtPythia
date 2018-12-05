@@ -1,14 +1,25 @@
 Main:numberOfEvents = 100000      ! number of events to generate
 
+Random:setSeed = on
+Random:seed = 0
+
+Beams:idA = 2212                   ! first beam, p = 2212, pbar = -2212
+Beams:idB = 2212                   ! second beam, p = 2212, pbar = -2212
+Beams:eCM = 5020                  ! CM energy of collision
+
+
 HardQCD:all = on
 PromptPhoton:all = on
+
+PhaseSpace:pTHatMin =  5.0          ! minimal pT scale in process 
+PhaseSpace:pTHatMax = -1.0          ! minimal pT scale in process 
+
+PhaseSpace:mHatMin = 0.0   # min mHat
+PhaseSpace:mHatMax = -1.0   # max mHat
 
 Next:numberShowEvent = 0
 Init:showAllSettings = off
 Tune:pp = 19
-PDF:LHAPDFset = cteq6l.LHpdf
-PDF:NuclearEffects = on
-PDF:NuclearPDF=EPS09LO
 
 PartonLevel:ISR = on
 PartonLevel:MPI = on

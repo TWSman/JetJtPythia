@@ -4,3 +4,4 @@ exec*
 outputs/
 *.root
 pythiaChargedDijet
+src/AliJCDijetHistos.o
