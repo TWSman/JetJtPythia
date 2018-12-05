@@ -101,3 +101,7 @@ DoResonancePythia 0 # 0 = Regular PYTHIA8 run. 1 = Generate two gluon initial st
 
 #======= For Pythia ======
 fEff 1.0
+
+#======= R parameters to use
+fR 0.3 0.4 0.5 0.6 0.7 0.8
+

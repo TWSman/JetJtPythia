@@ -59,17 +59,13 @@ int GetBin(TVector *array, double val){
       return iBin;
     }
 void CalculateJetsJt(TClonesArray *inList,
+    vector<fastjet::PseudoJet> chparticles,
     int    lDebug,
     int    lCBin,
     double lParticleEtaCut,
     double lParticlePtCut,
     double lJetCone,
-    double lktJetCone,
-    int    lktScheme,
-    bool   lusePionMassInkt,
-    bool   luseDeltaPhiBGSubtr,
     double lConstituentCut,
-    double lDeltaPhiCut,
     int iContainer,
     int doLeadingRef);
 
@@ -141,7 +137,7 @@ int main(int argc, char **argv) {
   // Extract settings to be used in the main program.
   int    nEvent  = pythia.mode("Main:numberOfEvents");
   bool   showCS  = pythia.flag("Main:showChangedSettings");
-  bool   showCPD = pythia.flag("Main:showChangedParticleData");
+  //bool   showCPD = pythia.flag("Main:showChangedParticleData");
   double energy  = pythia.mode("Beams:eCM");
 
   //pythia.readString(Form("PhaseSpace:pTHatMin ==%f",3));
@@ -156,7 +152,7 @@ int main(int argc, char **argv) {
 
   // List changed data. 
   if (showCS)  pythia.settings.listChanged();
-  if (showCPD) pdt.listChanged();
+  //if (showCPD) pdt.listChanged();
 
   //-------------------------------------------------------
   // Histograms and tools
@@ -296,6 +292,10 @@ int main(int argc, char **argv) {
 
   TRandom3 *rand = new TRandom3();
 
+  TVector fR = *fCard->GetVector("fR");
+  int nR = fR.GetNoElements();
+  vector<fastjet::PseudoJet> chparticles;
+
   for(int iEvent = 0; iEvent < nEvent; ++iEvent) {//begin event loop
 
     if (!pythia.next()) continue;
@@ -318,22 +318,44 @@ int main(int argc, char **argv) {
         new ((*inputList)[inputList->GetEntriesFast()]) AliJBaseTrack(track);
       }
     } // end of finalparticles
+    int noTracks = inputList->GetEntries();
+    double pt,eta,phi;
+
+    chparticles.clear();
+    fastjet::PseudoJet fTrack;
+    for (int itrack = 0; itrack < noTracks; ++itrack) {//loop over all the particles in the event
+      // Building input particle list for the jet reconstruction
+      AliJBaseTrack *trk = (AliJBaseTrack*)inputList->At(itrack);
+      pt = trk->Pt();
+      eta = trk->Eta();
+      fhistos->fh_events[centBin]->Fill("particles",1.0);
+      if (pt>partMinPtCut && TMath::Abs(eta) < partMinEtaCut){
+        fhistos->fh_events[centBin]->Fill("acc. particles",1.0);
+        phi = trk->Phi();
+        fhistos->fh_eta[centBin]->Fill(eta);
+        fhistos->fh_phi[centBin]->Fill(phi);
+        fhistos->fh_etaPhi[centBin]->Fill(eta,phi);
+        fhistos->fh_pt[centBin]->Fill(pt);
+        fTrack = fastjet::PseudoJet(trk->Px(),trk->Py(),trk->Pz(),trk->E());
+        fTrack.set_user_index(itrack);
+        chparticles.push_back(fTrack);
+      }
+    }
+    if(chparticles.size()==0) continue; // We are not intereted in empty events.
 
     // Here I call my function
-    CalculateJetsJt(inputList,
-        5, // Debug
-        centBin, // Cent bin
-        partMinEtaCut, // Particle eta cut
-        partMinPtCut, // Particle pt cut
-        coneR, // Jet cone size
-        ktconeR,
-        fktScheme,  
-        fusePionMassInktjets,
-        fuseDeltaPhiBGSubtr,
-        jetConstituentCut, // Jet constituent cut
-        dijetDeltaPhiCut, // Dijet DeltaPhi cut is pi/(this-argument)
-        0, //iContainer 
-        doLeadingRef);
+    for(int iR = 1 ; iR < nR+1 ; iR++){
+      CalculateJetsJt(inputList,
+          chparticles,
+          5, // Debug
+          centBin, // Cent bin
+          partMinEtaCut, // Particle eta cut
+          partMinPtCut, // Particle pt cut
+          fR[iR], // Jet cone size
+          jetConstituentCut, // Jet constituent cut
+          iR, //iContainer
+          doLeadingRef);
+    }
 
     EventCounter++;
     if(iEvent == nEvent-1) cout << nEvent << "\t" << "100%, nTried:" << pythia.info.nTried() << ", sigma:" << pythia.info.sigmaGen() << endl ;
@@ -363,143 +385,48 @@ int main(int argc, char **argv) {
 
 //______________________________________________________________________________
 void CalculateJetsJt(TClonesArray *inList,
+    vector<fastjet::PseudoJet> chparticles,
     int    lDebug,
     int    lCBin,
     double lParticleEtaCut,
     double lParticlePtCut,
     double lJetCone,
-    double lktJetCone,
-    int    lktScheme,
-    bool   lusePionMassInkt,
-    bool   luseDeltaPhiBGSubtr,
     double lConstituentCut,
-    double lDeltaPhiCut,
     int iContainer,
     int doLeadingRef) {
 
   double const etaMaxCutForJet = lParticleEtaCut-lJetCone;
-  double const MinJetPt = 10.0; // Min Jet Pt cut to disregard low pt jets
+  double const MinJetPt = 5.0; // Min Jet Pt cut to disregard low pt jets
   double const ghost_maxrap = lParticleEtaCut;
   unsigned int const repeat = 1; // default
   double const ghost_area   = 0.005; // ALICE=0.005 // default=0.01
-  double const pionmass = 0.139570; // From PDG
-  enum jetClasses {iRaw, iBGSubtr, iBGSubtrConstCut, iConstCut, iktJets, jetClassesSize};
+  //double const pionmass = 0.139570; // From PDG
 
 
-  double phi, eta, pt, pt2, rho, rhom, area, mjj, ptpair, dPhi, dPhi2;
+  double phi, eta, pt, rho, rhom, area;
   bool leadingTrackOverThreshold = false;
-  vector<fastjet::PseudoJet> chparticles;
   vector<fastjet::PseudoJet> ktchparticles;
-  vector<fastjet::PseudoJet> jets[jetClassesSize];
+  vector<fastjet::PseudoJet> jets;
   vector<fastjet::PseudoJet> rhoEstJets;
   vector<fastjet::PseudoJet> constituents;
-  fastjet::RecombinationScheme ktScheme;
   fastjet::PseudoJet jetAreaVector;
-  fastjet::PseudoJet jet_bgSubtracted;
   fastjet::PseudoJet dijet;
   fastjet::PseudoJet jet1;
 
-  //--------------------------------------------------------
-  //         B e g i n    e v e n t    l o o p.
-  //--------------------------------------------------------
-  int noTracks = inList->GetEntries();
-
-  chparticles.clear();
-  fastjet::PseudoJet fTrack;
-  for (int itrack = 0; itrack < noTracks; ++itrack) {//loop over all the particles in the event
-    // Building input particle list for the jet reconstruction
-    AliJBaseTrack *trk = (AliJBaseTrack*)inList->At(itrack);
-    pt = trk->Pt();
-    eta = trk->Eta();
-    fhistos->fh_events[lCBin]->Fill("particles",1.0);
-    if (pt>lParticlePtCut && TMath::Abs(eta) < lParticleEtaCut){
-      fhistos->fh_events[lCBin]->Fill("acc. particles",1.0);
-      phi = trk->Phi();
-      fhistos->fh_eta[lCBin]->Fill(eta);
-      fhistos->fh_phi[lCBin]->Fill(phi);
-      fhistos->fh_etaPhi[lCBin]->Fill(eta,phi);
-      fhistos->fh_pt[lCBin]->Fill(pt);
-      fTrack = fastjet::PseudoJet(trk->Px(),trk->Py(),trk->Pz(),trk->E());
-      fTrack.set_user_index(itrack);
-      chparticles.push_back(fTrack);
-      //chparticles.push_back(fastjet::PseudoJet(trk->Px(), trk->Py(), trk->Pz(), trk->E()));
-      if(lusePionMassInkt) ktchparticles.push_back(fastjet::PseudoJet(trk->Px(), trk->Py(), trk->Pz(), TMath::Sqrt(trk->Px()*trk->Px() + trk->Py()*trk->Py() + trk->Pz()*trk->Pz() + pionmass*pionmass)));
-      else ktchparticles.push_back(fastjet::PseudoJet(trk->Px(), trk->Py(), trk->Pz(), trk->E()));
-    }
-  }
-  if(chparticles.size()==0) return; // We are not intereted in empty events.
 
   //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   // Run the clustering, Reconstruct jets
   //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-  switch (lktScheme) {
-    case 0:  ktScheme = fastjet::E_scheme;
-             break;
-    case 1:  ktScheme = fastjet::pt_scheme;
-             break;
-    case 2:  ktScheme = fastjet::pt2_scheme;
-             break;
-    case 3:  ktScheme = fastjet::Et_scheme;
-             break;
-    case 4:  ktScheme = fastjet::Et2_scheme;
-             break;
-    case 5:  ktScheme = fastjet::BIpt_scheme;
-             break;
-    case 6:  ktScheme = fastjet::BIpt2_scheme;
-             break;
-    default: ktScheme = fastjet::external_scheme;
-             ::Error("AliJCDijetTask","Unknown recombination scheme!");
-  }
-  fastjet::JetDefinition jet_def(fastjet::antikt_algorithm, lJetCone, fastjet::pt_scheme); //Other option: fastjet::E_scheme
-  fastjet::JetDefinition jet_def_bge(fastjet::kt_algorithm, lktJetCone, ktScheme);
-
   fastjet::GhostedAreaSpec const area_spec(ghost_maxrap, repeat, ghost_area);
   fastjet::AreaDefinition const area_def(fastjet::active_area, area_spec);
-  fastjet::AreaDefinition const area_def_bge(fastjet::active_area_explicit_ghosts, area_spec);
-
-  // Selector selects first all jets inside rapidity acceptance and then all but two hardest jets.
-  fastjet::Selector const selectorAllButTwo = (!fastjet::SelectorNHardest(2));
-  fastjet::Selector const selectorEta = fastjet::SelectorAbsEtaMax(ghost_maxrap - lktJetCone);
-  fastjet::Selector const selectorBoth = selectorAllButTwo * selectorEta; // Here right selector is applied first, then the left one.
-  fastjet::JetMedianBackgroundEstimator bge(selectorEta, jet_def_bge, area_def_bge);
-
-  fastjet::ClusterSequenceArea cs(chparticles, jet_def, area_def);
-  fastjet::ClusterSequenceArea cs_bge(ktchparticles, jet_def_bge, area_def_bge);
-
-  jets[iRaw]    = fastjet::sorted_by_pt(cs.inclusive_jets(MinJetPt)); // APPLY Min pt cut for jet
-  jets[iktJets] = fastjet::sorted_by_pt(cs_bge.inclusive_jets(0.0)); // APPLY Min pt cut for jet
-
-  if(luseDeltaPhiBGSubtr) {
-    bool removed = false;
-    for (unsigned iktJet = 1; iktJet < jets[iktJets].size(); iktJet++) { // First jet is already skipped here.
-      if (!removed && TMath::Abs(jets[iktJets][iktJet].delta_phi_to(jets[iktJets][0])) > TMath::Pi()/lDeltaPhiCut) {
-        removed = true;
-        continue;
-      }
-      rhoEstJets.push_back(jets[iktJets][iktJet]);
-    }
-  } else {
-    rhoEstJets = selectorBoth(jets[iktJets]);
-  }
-
-  if( rhoEstJets.size() < 1 ) {
-    fhistos->fh_events[lCBin]->Fill("no rho calc. events",1.0);
-    rho  = 0.0;
-    rhom = 0.0;
-  } else { 
-    fhistos->fh_events[lCBin]->Fill("rho calc. events",1.0);
-    bge.set_jets(rhoEstJets);
-    rho  = bge.rho()<0   ? 0.0 : bge.rho();
-    rhom = bge.rho_m()<0 ? 0.0 : bge.rho_m();
-  }
-
-
+  fastjet::JetDefinition jet_def(fastjet::antikt_algorithm,lJetCone,fastjet::pt_scheme);
+  fastjet::ClusterSequenceArea cs(chparticles,jet_def,area_def);
+  jets    = fastjet::sorted_by_pt(cs.inclusive_jets(MinJetPt)); // APPLY Min pt cut for jet
   //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   // Loop over jets and fill various histos 
   //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   fhistos->fh_rho[lCBin]->Fill(rho);
   fhistos->fh_rhom[lCBin]->Fill(rhom);
-  if(lDebug > 9) std::cout << "Testing: Rho_M = " << rhom << ", has_rho_m() = " << bge.has_rho_m() << std::endl;
   double z; double jt; double jtleading; double zleading;
   TLorentzVector  vOrtho;
   TLorentzVector summedJet;
@@ -507,22 +434,23 @@ void CalculateJetsJt(TClonesArray *inList,
   int iBin2=0;
   int iBin = 0;
   int leadingTrackIndex;
+  int noTracks = inList->GetEntries();
 
   // anti-kt jets:
-  for (unsigned ijet = 0; ijet < jets[iRaw].size(); ijet++) {
-    AliJJet *jet =  new AliJJet(jets[iRaw][ijet].px(),jets[iRaw][ijet].py(), jets[iRaw][ijet].pz(), jets[iRaw][ijet].E(), ijet,0,0);
+  for (unsigned ijet = 0; ijet < jets.size(); ijet++) {
+    AliJJet *jet =  new AliJJet(jets[ijet].px(),jets[ijet].py(), jets[ijet].pz(), jets[ijet].E(), ijet,0,0);
     jet->SetArea( jet->Area() );
 
     //== TRACK or Particle
-    int nTrack = jets[iRaw][ijet].constituents().size();
+    int nTrack = jets[ijet].constituents().size();
     for(unsigned it=0;it<nTrack; it++){
-      int itrack = jets[iRaw][ijet].constituents()[it].user_index();
+      int itrack = jets[ijet].constituents()[it].user_index();
       AliJBaseTrack *trk = (AliJBaseTrack*)inList->At(itrack);
       jet->AddConstituent(trk);
     }
 
     double conPtMax =0;
-    eta = jets[iRaw][ijet].eta();
+    eta = jets[ijet].eta();
     fhistos->fh_events[lCBin]->Fill("jets",1.0);
     // anti-kt-jet eta cut
     int doBkg = 1;
@@ -532,10 +460,10 @@ void CalculateJetsJt(TClonesArray *inList,
     vOrtho.SetPhi(jet->Phi()+TMath::Pi()/2);
     if(TMath::Abs(eta) < etaMaxCutForJet) {
       fhistos->fh_events[lCBin]->Fill("acc. jets",1.0);
-      pt = jets[iRaw][ijet].pt();
+      pt = jets[ijet].pt();
       iBin = GetBin(fhistos->fJetTriggPtBorders,pt); // fill jetPt histos
-      phi = jets[iRaw][ijet].phi();
-      area = jets[iRaw][ijet].area();
+      phi = jets[ijet].phi();
+      area = jets[ijet].area();
       for (int icon = 0; icon<jet->GetConstituents()->GetEntries(); icon++){
         AliJBaseTrack *con = jet->GetConstituent(icon);
         if (con->Pt()>conPtMax) conPtMax = con->Pt();
@@ -544,42 +472,26 @@ void CalculateJetsJt(TClonesArray *inList,
       AliJBaseTrack *leadingTrack = jet->GetConstituent(leadingTrackIndex);
       double leadingTrackPt = jet->LeadingParticlePt(); //FIXME? For MC tracks this is possibly a track with no charge
       int jetMult = jet->GetConstituents()->GetEntries();
-      int iBin2 = GetBin(fhistos->fJetLeadPtBorders,leadingTrackPt);
+      iBin2 = GetBin(fhistos->fJetLeadPtBorders,leadingTrackPt);
       int iBin3 = GetBin(fhistos->fJetMultBorders,jetMult);
-      jetAreaVector = jets[iRaw][ijet].area_4vector();
-      fhistos->fh_jetEta[lCBin][iRaw]->Fill(eta);
-      fhistos->fh_jetPhi[lCBin][iRaw]->Fill(phi - TMath::Pi()); //Pseudojet.phi range 0-2pi
-      fhistos->fh_jetEtaPhi[lCBin][iRaw]->Fill(eta,phi - TMath::Pi());
-      fhistos->fh_jetPt[lCBin][iRaw]->Fill(pt);
+      jetAreaVector = jets[ijet].area_4vector();
+      fhistos->fh_jetEta[lCBin][iContainer]->Fill(eta);
+      fhistos->fh_jetPhi[lCBin][iContainer]->Fill(phi - TMath::Pi()); //Pseudojet.phi range 0-2pi
+      fhistos->fh_jetEtaPhi[lCBin][iContainer]->Fill(eta,phi - TMath::Pi());
+      fhistos->fh_jetPt[lCBin][iContainer]->Fill(pt);
       fhistos->fhJetPtBin[iContainer][iBin]->Fill(pt);
-      fhistos->fh_jetArea[lCBin][iRaw]->Fill(area);
-      fhistos->fh_jetAreaRho[lCBin][iRaw]->Fill(area*rho);
+      fhistos->fh_jetArea[lCBin][iContainer]->Fill(area);
+      fhistos->fh_jetAreaRho[lCBin][iContainer]->Fill(area*rho);
       leadingTrackOverThreshold=true;
       if(lDebug > 9) cout << "Jet i=" << ijet << ", jet pt=" << pt << endl;
-      for(unsigned iconst=0;iconst<jets[iRaw][ijet].constituents().size(); iconst++) {
-        if(lDebug > 9) cout << "Constituent i=" << iconst << ", constituent pt=" << jets[iRaw][ijet].constituents()[iconst].pt() << endl;
-        if(jets[iRaw][ijet].constituents()[iconst].pt() > lConstituentCut) { // Jet leading constituent cut.
+      for(unsigned iconst=0;iconst<jets[ijet].constituents().size(); iconst++) {
+        if(lDebug > 9) cout << "Constituent i=" << iconst << ", constituent pt=" << jets[ijet].constituents()[iconst].pt() << endl;
+        if(jets[ijet].constituents()[iconst].pt() > lConstituentCut) { // Jet leading constituent cut.
           leadingTrackOverThreshold=true;
           break;
         }
       }
 
-      jet_bgSubtracted = fastjet::PseudoJet(jets[iRaw][ijet].px() -        rho * jetAreaVector.px(),
-          jets[iRaw][ijet].py() -        rho * jetAreaVector.py(),
-          jets[iRaw][ijet].pz() - (rho+rhom) * jetAreaVector.pz(),
-          jets[iRaw][ijet].E()  - (rho+rhom) * jetAreaVector.E());
-
-      if(leadingTrackOverThreshold) {
-        fhistos->fh_events[lCBin]->Fill("const. cut jets",1.0);
-        fhistos->fh_jetEta[lCBin][iConstCut]->Fill(eta);
-        fhistos->fh_jetPhi[lCBin][iConstCut]->Fill(phi - TMath::Pi());
-        fhistos->fh_jetEtaPhi[lCBin][iConstCut]->Fill(eta,phi - TMath::Pi());
-        fhistos->fh_jetPt[lCBin][iConstCut]->Fill(pt);
-        fhistos->fh_jetArea[lCBin][iConstCut]->Fill(area);
-        fhistos->fh_jetAreaRho[lCBin][iConstCut]->Fill(area*rho);
-
-        jets[iConstCut].push_back(jet_bgSubtracted);
-      }
 
       double maxconpt = 0;
 
@@ -595,7 +507,7 @@ void CalculateJetsJt(TClonesArray *inList,
         /*if(track->GetCharge() == 0){
           cout << "No Charge" << endl;
           continue;
-        }*/
+          }*/
         if (pt<lParticlePtCut || TMath::Abs(eta) > lParticleEtaCut) continue;
         phi = track->Phi();
         if (pta > maxconpt) maxconpt = pta;
@@ -681,34 +593,6 @@ void CalculateJetsJt(TClonesArray *inList,
       if(doBkg){
         fhistos->fhBgTrkNumber[iContainer]->Fill(counter);
         fhistos->fhBgTrkNumberBin[iContainer][iBin]->Fill(counter);
-      }
-
-      // Check eta acceptance also for bg subtracted jets.
-      eta = jet_bgSubtracted.eta();
-      if(TMath::Abs(eta) < etaMaxCutForJet) {
-        fhistos->fh_events[lCBin]->Fill("bg. subtr. jets",1.0);
-        pt2 = jet_bgSubtracted.pt();
-        phi = jet_bgSubtracted.phi();
-        fhistos->fh_jetEta[lCBin][iBGSubtr]->Fill(eta);
-        fhistos->fh_jetPhi[lCBin][iBGSubtr]->Fill(phi - TMath::Pi());
-        fhistos->fh_jetEtaPhi[lCBin][iBGSubtr]->Fill(eta,phi - TMath::Pi());
-        fhistos->fh_jetPt[lCBin][iBGSubtr]->Fill(pt2);
-        fhistos->fh_jetArea[lCBin][iBGSubtr]->Fill(area); // Assuming bg subtracted jet has the same area.
-        fhistos->fh_jetAreaRho[lCBin][iBGSubtr]->Fill(area*rho);
-
-        jets[iBGSubtr].push_back(jet_bgSubtracted);
-
-        if(leadingTrackOverThreshold) {
-          fhistos->fh_events[lCBin]->Fill("bg. subtr. const. cut jets",1.0);
-          fhistos->fh_jetEta[lCBin][iBGSubtrConstCut]->Fill(eta);
-          fhistos->fh_jetPhi[lCBin][iBGSubtrConstCut]->Fill(phi - TMath::Pi());
-          fhistos->fh_jetEtaPhi[lCBin][iBGSubtrConstCut]->Fill(eta,phi - TMath::Pi());
-          fhistos->fh_jetPt[lCBin][iBGSubtrConstCut]->Fill(pt2);
-          fhistos->fh_jetArea[lCBin][iBGSubtrConstCut]->Fill(area);
-          fhistos->fh_jetAreaRho[lCBin][iBGSubtrConstCut]->Fill(area*rho);
-
-          jets[iBGSubtrConstCut].push_back(jet_bgSubtracted);
-        }
       }
     }
   }//end of the anti-kt-jet loop

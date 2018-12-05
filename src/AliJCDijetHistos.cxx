@@ -29,7 +29,6 @@ int AliJCDijetHistos::fNCentBin;
 AliJCDijetHistos::AliJCDijetHistos(AliJCard *card) :
 	fHMG(NULL),
 	fHistCentBin(),
-	fJetBin(),
   fCard(card),
 	fh_events(),
 	fh_centrality(),
@@ -101,7 +100,6 @@ AliJCDijetHistos::AliJCDijetHistos(AliJCard *card) :
 AliJCDijetHistos::AliJCDijetHistos(const AliJCDijetHistos& obj) :
   fHMG(obj.fHMG),
   fHistCentBin(obj.fHistCentBin),
-  fJetBin(obj.fJetBin),
   fCard(obj.fCard),
   fh_events(obj.fh_events),
   fh_centrality(obj.fh_centrality),
@@ -189,6 +187,7 @@ void AliJCDijetHistos::CreateEventTrackHistos(){
   fJetAssocPtBorders = fCard->GetVector("JetAssocPtBorders");
   fJetLeadPtBorders = fCard->GetVector("JetLeadPtBorders");
   fJetMultBorders = fCard->GetVector("JetMultBorders");
+  fR = fCard->GetVector("fR");
   fDeltaRBorders = fCard->GetVector("DeltaRBorders");
   fJetEtaCut = fCard-> Get("JetEtaCut");
   fXlongBorders = fCard->GetVector("xEBorders");
@@ -196,8 +195,7 @@ void AliJCDijetHistos::CreateEventTrackHistos(){
   fHMG = new AliJHistManager("AliJCDijetHistManager","jcdijet");
   // set AliJBin here //
   fHistCentBin.Set("CentBin","CentBin","Cent:",AliJBin::kSingle).SetBin(fNCentBin);
-  fJetBin.Set("JetBin","JetBin","Jet bin:",AliJBin::kSingle).SetBin(5);
-  fJetFinderBin .Set("JetFinderOrder","NFin","Finder:%s", AliJBin::kSingle).SetBin(3);
+  fJetFinderBin .Set("JetFinderOrder","NFin","Finder:%s",AliJBin::kSingle).SetBin(fR);
   fJetTriggerBin.Set("JetTriggerBin","JetPt","p_{T,jet} : %.1f - %.1f").SetBin(fCard->GetVector("JetTriggPtBorders"));
   fTrkPtBin .Set("TrkPtBin","TrkPt","p_{T,constituent}:%.1f-%.1f").SetBin(fCard->GetVector("JetAssocPtBorders"));
   fTrkLimPtBin .Set("TrkLimitPtBin","TrkLimitPt","p_{T,Limit}<%.1f", AliJBin::kSingle).SetBin(fJetConstPtLowLimits->GetNoElements());
@@ -302,34 +300,34 @@ void AliJCDijetHistos::CreateEventTrackHistos(){
   fh_jetPt
     //<< TH1D("h_jetPt", "h_jetPt", AliJCDijetHistos::NpttJacek, AliJCDijetHistos::pttJacek)
     << TH1D("h_jetPt","h_jetPt",NBINSJet, LogBinsXJet )
-    << fHistCentBin << fJetBin
+    << fHistCentBin << fJetFinderBin
     << "END" ;
 
   fh_jetEta
     << TH1D("h_jetEta", "h_jetEta", 100, -1.0, 1.0)
-    << fHistCentBin << fJetBin
+    << fHistCentBin << fJetFinderBin
     << "END" ;
 
   fh_jetPhi
     << TH1D("h_jetPhi", "h_jetPhi", 100, -TMath::Pi(), TMath::Pi())
-    << fHistCentBin << fJetBin
+    << fHistCentBin << fJetFinderBin
     << "END" ;
 
   fh_jetEtaPhi
     << TH2D("h_jetEtaPhi", "h_jetEtaPhi", 100, -1.0, 1.0, 100, -TMath::Pi(), TMath::Pi())
-    << fHistCentBin << fJetBin
+    << fHistCentBin << fJetFinderBin
     << "END" ;
 
   fh_jetArea
     //<< TH1D("h_jetArea", "h_jetArea", AliJCDijetHistos::NpttJacek, AliJCDijetHistos::pttJacek)
     << TH1D("h_jetArea", "h_jetArea", NBINSJet, LogBinsXJet )
-    << fHistCentBin << fJetBin
+    << fHistCentBin << fJetFinderBin
     << "END" ;
 
   fh_jetAreaRho
     //<< TH1D("h_jetAreaRho", "h_jetAreaRho", AliJCDijetHistos::NpttJacek, AliJCDijetHistos::pttJacek)
     << TH1D("h_jetAreaRho", "h_jetAreaRho", NBINSJet, LogBinsXJet )
-    << fHistCentBin << fJetBin
+    << fHistCentBin << fJetFinderBin
     << "END" ;
 
   int NBINSDijet=170;
@@ -340,29 +338,29 @@ void AliJCDijetHistos::CreateEventTrackHistos(){
   // ============= DIJET HISTOS ============= 
   fh_dijetInvM
     << TH1D("h_dijetInvM", "h_dijetInvM", NBINSDijet, logBinsXDijet)
-    << fHistCentBin << fJetBin
+    << fHistCentBin << fJetFinderBin
     << "END" ;
 
   fh_dijetPtPair
     //<< TH1D("h_dijetPtPair", "h_dijetPtPair", AliJCDijetHistos::NpttJacek, AliJCDijetHistos::pttJacek )
     << TH1D("h_dijetPtPair", "h_dijetPtPair", NBINSDijet, logBinsXDijet )
-    << fHistCentBin << fJetBin
+    << fHistCentBin << fJetFinderBin
     << "END" ;
 
   fh_dijetDeltaPhi
     << TH1D("h_dijetDeltaPhi", "h_dijetDeltaPhi", 100, 0, 10)
-    << fHistCentBin << fJetBin
+    << fHistCentBin << fJetFinderBin
     << "END" ;
 
   fh_dijetPtPairDeltaPhiCut
     //<< TH1D("h_dijetPtPair", "h_dijetPtPair", AliJCDijetHistos::NpttJacek, AliJCDijetHistos::pttJacek )
     << TH1D("h_dijetPtPairDeltaPhiCut", "h_dijetPtPairDeltaPhiCut", NBINSDijet, logBinsXDijet )
-    << fHistCentBin << fJetBin
+    << fHistCentBin << fJetFinderBin
     << "END" ;
 
   fh_dijetInvMDeltaPhiCut
     << TH1D("h_dijetInvMDeltaPhiCut", "h_dijetInvMDeltaPhiCut", NBINSDijet, logBinsXDijet)
-    << fHistCentBin << fJetBin
+    << fHistCentBin << fJetFinderBin
     << "END" ;
 
   int NBINSJt=64;

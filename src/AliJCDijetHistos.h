@@ -57,6 +57,7 @@ class AliJCDijetHistos : public AliJHistogramInterface
     TVector  *fDeltaRBorders;
     TVector *fCentralityBorders; ///< Jet multiplicity bin borders
     TVector *fXlongBorders; ///< Xlong bin borders
+    TVector *fR; ///< R parameters
 
     AliJHistManager * fHMG; //! Histogram manager
     AliJBin fHistCentBin;   //! Centrality bin
