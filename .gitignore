@@ -5,3 +5,4 @@ outputs/
 *.root
 pythiaChargedDijet
 src/AliJCDijetHistos.o
+*test*
