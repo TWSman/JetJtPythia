@@ -36,7 +36,6 @@
 #include <TClonesArray.h>
 #include "src/AliJCDijetHistos.h"
 #include "src/AliJBaseTrack.h"
-//#include "src/JHistos.h"
 #include "src/AliJCard.h"
 #include "src/AliJJet.h"
 #include "src/AliJHistManager.h"
