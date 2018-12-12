@@ -5,4 +5,12 @@ outputs/
 *.root
 pythiaChargedDijet
 src/AliJCDijetHistos.o
+src/AliJBaseCard.o
+src/AliJBaseTrack.o
+src/AliJCard.o
+src/AliJHistManager.o
+src/AliJHistogramInterface.o
+src/AliJJet.o
+src/AliJPhoton.o
+src/
 *test*

@@ -66,6 +66,7 @@ void CalculateJetsJt(TClonesArray *inList,
     double lParticlePtCut,
     double lJetCone,
     double lConstituentCut,
+    double lJetEtaCut,
     int iContainer,
     int doLeadingRef);
 
@@ -172,7 +173,7 @@ int main(int argc, char **argv) {
   TClonesArray *inputList = new TClonesArray("AliJBaseTrack",1500);
 
   double partMinPtCut         = 0.15;// atlas 0.5 cms/alice 0.15
-  double partMinEtaCut        = 0.8;
+  double partMinEtaCut        = 1.2;
   double coneR                = 0.4; // atlas 0.6, cms 0.7 alice 0.4
   double ktconeR              = 0.4;
   double fusePionMassInktjets = false;
@@ -180,6 +181,7 @@ int main(int argc, char **argv) {
   double jetConstituentCut    = 5.0;
   double dijetSubleadingPt    = 20.0;
   double dijetDeltaPhiCut     = 2.0; // Cut is pi/dijetDeltaPhiCut
+  double jetEtaCut            = 0.25;
   int fktScheme               = 1;
   int centBin=0;
   int doLeadingRef=0;
@@ -353,7 +355,8 @@ int main(int argc, char **argv) {
           partMinPtCut, // Particle pt cut
           fR[iR], // Jet cone size
           jetConstituentCut, // Jet constituent cut
-          iR, //iContainer
+          jetEtaCut,     // Jet eta cut
+          iR - 1, //iContainer
           doLeadingRef);
     }
 
@@ -392,6 +395,7 @@ void CalculateJetsJt(TClonesArray *inList,
     double lParticlePtCut,
     double lJetCone,
     double lConstituentCut,
+    double lJetEtaCut,
     int iContainer,
     int doLeadingRef) {
 
@@ -438,6 +442,8 @@ void CalculateJetsJt(TClonesArray *inList,
 
   // anti-kt jets:
   for (unsigned ijet = 0; ijet < jets.size(); ijet++) {
+    eta = jets[ijet].eta();
+    if(TMath::Abs(eta) > lJetEtaCut) continue;
     AliJJet *jet =  new AliJJet(jets[ijet].px(),jets[ijet].py(), jets[ijet].pz(), jets[ijet].E(), ijet,0,0);
     jet->SetArea( jet->Area() );
 
@@ -450,7 +456,6 @@ void CalculateJetsJt(TClonesArray *inList,
     }
 
     double conPtMax =0;
-    eta = jets[ijet].eta();
     fhistos->fh_events[lCBin]->Fill("jets",1.0);
     // anti-kt-jet eta cut
     int doBkg = 1;

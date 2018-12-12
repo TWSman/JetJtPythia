@@ -11,7 +11,7 @@ Beams:eCM = 5020                  ! CM energy of collision
 HardQCD:all = on
 PromptPhoton:all = on
 
-PhaseSpace:pTHatMin =  5.0          ! minimal pT scale in process 
+PhaseSpace:pTHatMin =  10.0          ! minimal pT scale in process 
 PhaseSpace:pTHatMax = -1.0          ! minimal pT scale in process 
 
 PhaseSpace:mHatMin = 0.0   # min mHat

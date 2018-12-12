@@ -22,7 +22,7 @@ Beams:eCM = 5020.                  ! CM energy of collision
 HardQCD:all = on                   ! switch on all QCD jet + jet processes
 !PromptPhoton:all = on              ! swich on gamma + jet and gamma + gamma 
 
-PhaseSpace:pTHatMin =  5.0          ! minimal pT scale in process 
+PhaseSpace:pTHatMin =  10.0          ! minimal pT scale in process 
 PhaseSpace:pTHatMax = -1.0          ! minimal pT scale in process 
 
 # Use this for hard leading-jets in a certain mHat window

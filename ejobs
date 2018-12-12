@@ -43,7 +43,7 @@ cat << EOF > exec_jetjt_$comment
 cd $Main_DIR
 source setup.sh.elc
 export what=$DoWhat
-export sedN=6000
+export sedN=7000
 export iseg=\$SLURM_ARRAY_TASK_ID
 sedN=\`expr \$sedN + \${iseg}\`
 export outfile=$Out_DIR/$DoWhat-\$sedN.root

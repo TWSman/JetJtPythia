@@ -194,8 +194,14 @@ void AliJCDijetHistos::CreateEventTrackHistos(){
   // Create basic event histograms
   fHMG = new AliJHistManager("AliJCDijetHistManager","jcdijet");
   // set AliJBin here //
+  TString fJetFinderNames = "";
+  int nR = fR->GetNoElements();
+  for (int iR= 1; iR<nR+1 ; iR++){
+    TString name = Form("R=%.2f_NFIN",(*fR)[iR]);
+    fJetFinderNames.Append(Form("%s\t",name.Data()));
+  }
   fHistCentBin.Set("CentBin","CentBin","Cent:",AliJBin::kSingle).SetBin(fNCentBin);
-  fJetFinderBin .Set("JetFinderOrder","NFin","Finder:%s",AliJBin::kSingle).SetBin(fR);
+  fJetFinderBin .Set("JetFinderOrder","NFin","Finder:%s",AliJBin::kString).SetBin(fJetFinderNames);
   fJetTriggerBin.Set("JetTriggerBin","JetPt","p_{T,jet} : %.1f - %.1f").SetBin(fCard->GetVector("JetTriggPtBorders"));
   fTrkPtBin .Set("TrkPtBin","TrkPt","p_{T,constituent}:%.1f-%.1f").SetBin(fCard->GetVector("JetAssocPtBorders"));
   fTrkLimPtBin .Set("TrkLimitPtBin","TrkLimitPt","p_{T,Limit}<%.1f", AliJBin::kSingle).SetBin(fJetConstPtLowLimits->GetNoElements());
