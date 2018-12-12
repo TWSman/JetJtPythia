@@ -1,0 +1,41 @@
+Executable = "fastpythia";
+
+Jobtag={"comment:fastsimulation"};
+
+Packages = {
+		"VO_ALICE@cgal::v4.6.3-30",
+    "VO_ALICE@fastjet::v3.2.1_1.024-alice3-2",
+    "VO_ALICE@AliRoot::v5-09-37-1"
+};
+
+TTL = "10000";
+Price="1";
+//Validationcommand ="/alice/validation/validation.sh";
+
+
+InputFile = {
+            "LF:/alice/cern.ch/user/k/kimb/jetjt/Makefile",
+            "LF:/alice/cern.ch/user/k/kimb/jetjt/pythiaChargedDijet.C",
+            "LF:/alice/cern.ch/user/k/kimb/jetjt/pythia_config_Monash2013.cmnd",
+            "LF:/alice/cern.ch/user/k/kimb/jetjt/pythia_config_4C.cmnd",
+            "LF:/alice/cern.ch/user/k/kimb/jetjt/cardAlice_pp.input",
+            "LF:/alice/cern.ch/user/k/kimb/jetjt/AliJConst.h",
+            "LF:/alice/cern.ch/user/k/kimb/jetjt/pythia8230.tar",
+            "LF:/alice/cern.ch/user/k/kimb/jetjt/src.tar"
+};
+
+Output = {
+        "log_archive:stderr,stdout@disk=2",
+        "root_archive.zip:monash.root,tune4c.root@disk=2"
+};
+
+OutputDir="/alice/cern.ch/user/k/kimb/jetjt/out/#alien_counter_03i#";
+//splitarguments=" ";
+
+JDLVariables={"Packages", "OutputDir"};
+GUIDFILE="guid.txt";
+
+
+split="production:1-2";
+
+Workdirectorysize={"10000MB"};

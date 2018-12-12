@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# set job and simulation variables as :
+# ./simrun.sh  --run <x> --event <y> --process <kPythia6/kPhojet/kPythia6ATLAS_Flat/kPythia6D6T> --field <kNoField/k5kG> --energy <900/2360/10000>
+
+
+while [ ! -z "$1" ]; do
+    option="$1"
+    shift
+
+    if [ "$option" = "--run" ]; then
+            DC_RUN="$1"
+            shift
+    elif [ "$option" = "--event" ]; then
+            DC_EVENT="$1"
+            shift
+    fi
+done
+
+
+
+CONFIG_SEED=""
+CONFIG_SEED=$((ALIEN_PROC_ID%1000000000))
+
+tar -xvf pythia8230.tar
+cd pythia8230
+./configure
+make 2>&1
+cd ../
+export PYTHIA8=$PWD/pythia8230 2>&1
+tar -xvf ./src.tar
+printenv
+make 2>&1
+make 2>&1
+./pythiaChargedDijet pythia_config_Monash2013.cmnd cardAlice_pp.input monash.root 2>&1
+./pythiaChargedDijet pythia_config_4C.cmnd cardAlice_pp.input tune4c.root 2>&1
+
+exit 0
